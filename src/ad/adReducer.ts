@@ -1,5 +1,6 @@
 import { KanInkludere } from './edit/registrer-inkluderingsmuligheter/DirektemeldtStilling';
 import deepEqual from 'deep-equal';
+import * as Sentry from '@sentry/react';
 import { put, select, takeLatest } from 'redux-saga/effects';
 import {
     ApiError,
@@ -30,7 +31,6 @@ import {
     validateAll,
     validateBeforeSave,
 } from './adValidationReducer';
-import PrivacyStatusEnum from '../common/enums/PrivacyStatusEnum';
 import { showAlertStripe } from './alertstripe/SavedAdAlertStripeReducer';
 import AdAlertStripeEnum from './alertstripe/AdAlertStripeEnum';
 import { FETCH_MY_ADS } from '../myAds/myAdsReducer';
@@ -43,6 +43,7 @@ import {
 } from '../stillingsinfo/stillingsinfoDataReducer';
 import { loggPubliseringAvStilling } from './adUtils';
 import { tagsInneholderInkluderingsmuligheter } from './tags/utils';
+import Stilling, { NyStilling, Privacy, AdminStatus, Source } from './Stilling';
 
 export const FETCH_AD = 'FETCH_AD';
 export const FETCH_AD_BEGIN = 'FETCH_AD_BEGIN';
@@ -116,7 +117,7 @@ export type AdState = {
     isSavingAd: boolean;
     isLoadingAd: boolean;
     isEditingAd: boolean;
-    originalData: any;
+    originalData?: Stilling;
     hasSavedChanges: boolean;
     hasChanges: boolean;
     copiedAds: any[];
@@ -390,25 +391,27 @@ function* createAd() {
         const reportee = yield getReportee();
 
         const postUrl = `${stillingApi}/rekrutteringsbistand/api/v1/ads?classify=true`;
-
-        const response = yield fetchPost(postUrl, {
+        const nyStilling: NyStilling = {
             title: DEFAULT_TITLE_NEW_AD,
             createdBy: 'pam-rekrutteringsbistand',
             updatedBy: 'pam-rekrutteringsbistand',
-            source: 'DIR',
-            privacy: PrivacyStatusEnum.INTERNAL_NOT_SHOWN,
+            source: Source.Dir,
+            privacy: Privacy.InternalNotShown,
             administration: {
-                status: AdminStatusEnum.PENDING,
+                status: AdminStatus.Pending,
                 reportee: reportee.displayName,
                 navIdent: reportee.navIdent,
             },
-        });
+        };
+
+        const response = yield fetchPost(postUrl, nyStilling);
 
         yield put({ type: SET_AD_DATA, data: response });
         yield put({ type: SET_REPORTEE, reportee: reportee.displayName });
         yield put({ type: SET_NAV_IDENT, navIdent: reportee.navIdent });
         yield put({ type: CREATE_AD_SUCCESS, response });
     } catch (e) {
+        Sentry.captureException(e);
         if (e instanceof ApiError) {
             yield put({ type: CREATE_AD_FAILURE, error: e });
         }
@@ -575,15 +578,15 @@ function* copyAdFromMyAds(action) {
 
         const postUrl = `${stillingApi}/rekrutteringsbistand/api/v1/ads?classify=true`;
 
-        const response = yield fetchPost(postUrl, {
+        const response: NyStilling = yield fetchPost(postUrl, {
             ...adToCopy,
             title: `Kopi - ${adToCopy.title}`,
             createdBy: 'pam-rekrutteringsbistand',
             updatedBy: 'pam-rekrutteringsbistand',
-            source: 'DIR',
-            privacy: PrivacyStatusEnum.INTERNAL_NOT_SHOWN,
+            source: Source.Dir,
+            privacy: Privacy.InternalNotShown,
             administration: {
-                status: AdminStatusEnum.PENDING,
+                status: AdminStatus.Pending,
                 reportee: reportee.displayName,
                 navIdent: reportee.navIdent,
             },

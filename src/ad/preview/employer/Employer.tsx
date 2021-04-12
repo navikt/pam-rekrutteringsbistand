@@ -1,10 +1,17 @@
-import React from 'react';
+import React, { FunctionComponent } from 'react';
 import ReactHtmlParser from 'react-html-parser';
 import { Undertittel } from 'nav-frontend-typografi';
-import './Employer.less';
 import { isValidUrl } from '../../../common/utils';
+import { Arbeidsgiver, Nullable, Properties } from '../../Stilling';
+import './Employer.less';
 
-export default function Employer({ properties, businessName }) {
+type Props = {
+    employer: Nullable<Arbeidsgiver>;
+    properties: Properties;
+    businessName: string | null;
+};
+
+const Employer: FunctionComponent<Props> = ({ employer, properties, businessName }) => {
     return (
         <div className="detail-section">
             <Undertittel className="detail-section__head">Om bedriften</Undertittel>
@@ -12,6 +19,10 @@ export default function Employer({ properties, businessName }) {
                 {(properties.employer || businessName) && [
                     <dt key="dt">Bedriftens navn:</dt>,
                     <dd key="dd">{properties.employer || businessName}</dd>, // todo: remove ad.properties.employer when depricated
+                ]}
+                {employer?.orgnr && [
+                    <dt key="dt">Organisasjonsnr:</dt>,
+                    <dd key="dd">{employer.orgnr}</dd>,
                 ]}
                 {properties.employerhomepage &&
                     isValidUrl(properties.employerhomepage) && [
@@ -99,4 +110,6 @@ export default function Employer({ properties, businessName }) {
             </div>
         </div>
     );
-}
+};
+
+export default Employer;
